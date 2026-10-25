@@ -1,6 +1,6 @@
 name: deploy
 
-# Builds and publishes the live demo to GitHub Pages on every push to main (only if the tests pass).
+# Builds and publishes the demo-mode frontend to GitHub Pages on every push to main (only if the tests pass).
 on:
   push:
     branches: [main]
@@ -18,18 +18,23 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm test
+      # no VITE_API_URL: the static site runs in demo mode (in-browser gateway and simulated history)
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: frontend/dist
 
   deploy:
     needs: build

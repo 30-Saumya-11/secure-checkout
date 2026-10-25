@@ -1,4 +1,9 @@
 node_modules/
 dist/
 .env
+.env.local
+*.local
 *.log
+__pycache__/
+*.pyc
+.pytest_cache/

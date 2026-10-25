@@ -1,0 +1,43 @@
+# Whole platform on one machine:  docker compose up --build   ->  http://localhost:8080
+# Demo accounts: merchant@campus.store / customer@campus.store, password from SEED_PASSWORD (default demo-password).
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: store
+      POSTGRES_USER: store
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-store-local-only}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U store -d store"]
+      interval: 3s
+      retries: 20
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql://store:${POSTGRES_PASSWORD:-store-local-only}@db:5432/store
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env (see .env.example)}
+      CARD_FINGERPRINT_KEY: ${CARD_FINGERPRINT_KEY:?set CARD_FINGERPRINT_KEY in .env}
+      DEMO_TOOLS: "true"
+      SEED_DEMO: "true"
+      SEED_PASSWORD: ${SEED_PASSWORD:-demo-password}
+      PUBLIC_BASE_URL: http://backend:8101
+      CORS_ORIGINS: http://localhost:8080
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: /
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

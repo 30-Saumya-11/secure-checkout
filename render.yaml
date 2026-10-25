@@ -1,0 +1,39 @@
+# Render blueprint: New + -> Blueprint -> pick this repo.
+# After the first deploy, set VITE_API_URL on the static site to the API's URL and CORS_ORIGINS on the API to the
+# static site's URL, then redeploy the static site.
+databases:
+  - name: store-db
+    plan: free
+
+services:
+  - type: web
+    name: store-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: alembic upgrade head && python seed.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: store-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CARD_FINGERPRINT_KEY
+        generateValue: true
+      - key: DEMO_TOOLS
+        value: "true"
+      - key: CORS_ORIGINS
+        sync: false
+
+  - type: web
+    name: store-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false

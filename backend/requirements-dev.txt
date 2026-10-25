@@ -1,0 +1,4 @@
+-r requirements.txt
+pytest>=8
+# starts a throwaway Postgres for the tests when DATABASE_URL is not set (no Docker needed)
+pgserver>=0.1.4
