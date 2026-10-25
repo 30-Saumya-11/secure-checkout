@@ -1,0 +1,146 @@
+<h2>Overview</h2>
+<p>Secure Checkout is a card payment page in <b>React + TypeScript</b> built around three promises to the customer:
+<b>you are never charged twice</b>, <b>everyone can use it</b> (keyboard and screen-reader users included), and
+<b>help is there when a payment fails</b>, from an assistant that answers from the help centre and cites its sources.</p>
+<div class="stats">
+  <div class="stat"><b>1</b><span>charge, even after double-clicks and lost responses</span></div>
+  <div class="stat"><b>0</b><span>automated accessibility violations (3 page states)</span></div>
+  <div class="stat"><b>94%</b><span>help-assistant recall@3 on held-out questions</span></div>
+  <div class="stat"><b>56</b><span>automated tests in CI</span></div>
+</div>
+<img class="shot" src="file:///C:/Users/ashut/Downloads/New%20folder%20(9)/saumya-projects/secure-checkout/docs/screenshot-desktop.png" alt="Checkout page">
+<div class="note">Demo only: the payment gateway is a mock that runs in the browser and behaves like real gateways in the
+ways that matter to the UI. No real card network is contacted. Live: <a href="https://30-saumya-11.github.io/secure-checkout/">30-saumya-11.github.io/secure-checkout</a></div>
+
+<h2>The problems it solves</h2>
+<table>
+<tr><th>Problem</th><th>What goes wrong in real shops</th><th>What this checkout does</th></tr>
+<tr><td>Double charges</td><td>The bank charges the card, the response is lost, the customer presses Pay again and is charged twice.</td><td>One idempotency key per attempt; retries reuse it, so the gateway returns the first result.</td></tr>
+<tr><td>Inaccessible forms</td><td>Errors shown only in red, focus lost, no labels: screen-reader and keyboard users cannot pay.</td><td>Labelled fields, linked errors, an error summary that takes focus, live status updates, keyboard-only flow.</td></tr>
+<tr><td>Card-data exposure</td><td>Full numbers or CVVs end up in logs or storage.</td><td>Only a token, the network and the last 4 digits are kept; the CVV is discarded and cleared after a failure.</td></tr>
+<tr><td>Unexplained declines</td><td>"Payment failed" with no reason; customers give up or call support.</td><td>A help assistant that uses the actual decline code and cites the help article it used.</td></tr>
+</table>
+
+<h2>Architecture</h2>
+<div class="mermaid">
+flowchart LR
+  U[Customer] --> F[CheckoutForm<br/>validation, a11y]
+  F --> H[useCheckout<br/>state machine]
+  H -->|Idempotency-Key| G[MockGateway<br/>charges, 3-D Secure,<br/>tokenisation]
+  G --> H
+  H --> D[3-D Secure dialog]
+  F -->|decline code| A[HelpAssistant<br/>RAG]
+  A --> R[(10 help articles<br/>21 sections)]
+</div>
+<table>
+<tr><th>File</th><th>Responsibility</th></tr>
+<tr><td><code>src/lib/card.ts</code></td><td>Luhn checksum, network detection (IIN ranges), formatting, expiry and CVC rules, masking</td></tr>
+<tr><td><code>src/lib/gateway.ts</code></td><td>Mock gateway: idempotency store, test-card declines, 3-D Secure, lost responses, tokenisation</td></tr>
+<tr><td><code>src/hooks/useCheckout.ts</code></td><td>Checkout state machine and safe retry logic</td></tr>
+<tr><td><code>src/components/CheckoutForm.tsx</code></td><td>Accessible form, error summary, live status</td></tr>
+<tr><td><code>src/components/ChallengeDialog.tsx</code></td><td>One-time-code dialog with focus management</td></tr>
+<tr><td><code>src/assistant/*</code></td><td>Help articles, BM25 retrieval, answering, evaluation questions</td></tr>
+</table>
+
+<h2>Never charging twice</h2>
+<div class="mermaid">
+sequenceDiagram
+  participant U as Customer
+  participant H as useCheckout
+  participant G as Gateway
+  U->>H: Pay (double-click)
+  Note over H: 2nd click ignored (ref guard)
+  H->>G: charge(card, key K)
+  G-->>H: response lost (card WAS charged)
+  H->>G: retry charge(card, same key K)
+  G-->>H: original result, no new charge
+  H-->>U: Payment successful •••• 4242
+</div>
+<ul>
+<li><b>One key per attempt.</b> The key is created when an attempt starts and reused for every retry of that attempt.</li>
+<li><b>A new key only for a genuinely new attempt:</b> after a decline, or when the card details change.</li>
+<li><b>Same key, different payment → refused</b> (<code>IdempotencyConflict</code>), so a bug cannot reuse a key by accident.</li>
+<li><b>The double-click guard is a ref, not state:</b> a state update would only take effect on the next render, after the second click.</li>
+<li>Automatic retries (2, with back-off) after network errors; if they run out, the customer is told that pressing Pay again is safe.</li>
+</ul>
+
+<h2>Card rules</h2>
+<table>
+<tr><th>Network</th><th>IIN ranges used</th><th>Lengths</th><th>CVC</th></tr>
+<tr><td>Visa</td><td>4</td><td>13, 16, 19</td><td>3</td></tr>
+<tr><td>Mastercard</td><td>51–55, 2221–2720</td><td>16</td><td>3</td></tr>
+<tr><td>RuPay</td><td>508500–508999, 606985–607984, 608001–608500, 652150–653149</td><td>16</td><td>3</td></tr>
+<tr><td>American Express</td><td>34, 37</td><td>15</td><td>4</td></tr>
+</table>
+<p><b>Luhn checksum:</b> from the right, double every second digit (subtract 9 if it exceeds 9) and sum everything; a
+valid number sums to a multiple of 10. It catches every single-digit typo and most swaps of neighbouring digits.
+Expiry: a card is valid until the end of its expiry month. Amounts are integers in paise, never floating point.</p>
+
+<h2>Accessibility</h2>
+<ul>
+<li>Every input has a visible label and the right <code>autocomplete</code> token (<code>cc-number</code>, <code>cc-exp</code>, <code>cc-csc</code>, <code>cc-name</code>) and a numeric keyboard on phones.</li>
+<li>Errors appear after the user leaves a field (not while typing), are linked with <code>aria-describedby</code> and set <code>aria-invalid</code>.</li>
+<li>On a failed submit, focus moves to an error summary whose items link to the fields.</li>
+<li>Progress and results are announced through a polite live region.</li>
+<li>The 3-D Secure dialog takes focus and closes on Escape; touch targets are at least 44 px; contrast ratios are chosen for WCAG AA.</li>
+<li><b>axe-core</b> runs in the tests on the empty form, the form with errors and the full page: 0 violations.</li>
+</ul>
+
+<h2>Payment help assistant (RAG)</h2>
+<p>A retrieval-augmented assistant over 10 help articles (21 sections) for payment questions.</p>
+<ol>
+<li><b>Retrieve</b>: BM25 over title, heading and text, with synonym expansion (customers write "OTP", the articles say "code") and light stemming.</li>
+<li><b>Use context</b>: the decline code of the last payment is added to the question, so "why did it fail?" is answered for <i>this</i> payment.</li>
+<li><b>Refuse when unsure</b>: if the best section scores below 2.25 (chosen on dev questions only), it says it could not find the answer.</li>
+<li><b>Answer with sources</b>: sentences quoted from the best sections, with the article and section shown. An optional LLM mode must cite the sources it was given, otherwise the quoted answer is used; the model is called through a backend, never with a key in the browser.</li>
+</ol>
+<h3>Evaluation</h3>
+<table>
+<tr><th>Metric (20 held-out test questions)</th><th>Result</th></tr>
+<tr><td>Right article ranked first</td><td>14 / 16 (88%)</td></tr>
+<tr><td>Right article in the top 3</td><td>15 / 16 (94%)</td></tr>
+<tr><td>Out-of-scope questions refused</td><td>3 / 4</td></tr>
+<tr><td>In-scope questions wrongly refused</td><td>0 / 16</td></tr>
+</table>
+<div class="note warn">The articles and questions were written by the same person and the test set is small, so these numbers are
+optimistic. CI fails the build if recall@3 drops below 90%, which catches regressions.</div>
+
+<h2>Testing and CI/CD</h2>
+<table>
+<tr><th>Suite</th><th>What it checks</th></tr>
+<tr><td><code>card.test.ts</code></td><td>Luhn, network detection incl. range edges, formatting, expiry rules, CVC length</td></tr>
+<tr><td><code>gateway.test.ts</code></td><td>Idempotency, lost responses, declines, 3-D Secure, amount validation, no stored card data</td></tr>
+<tr><td><code>CheckoutForm.test.tsx</code></td><td>axe checks, autocomplete, error summary focus, double-click = 1 charge, lost response, decline announcement, 3-D Secure, keyboard-only flow</td></tr>
+<tr><td><code>assistant.test.ts</code></td><td>Threshold equals the dev-chosen value, recall floor, decline-code context, refusals, LLM citation rules</td></tr>
+<tr><td><code>App.test.tsx</code></td><td>Checkout and assistant together; full-page accessibility</td></tr>
+</table>
+<p>GitHub Actions runs all 56 tests and the build on every push; a second workflow deploys the site to GitHub Pages only if the tests pass.</p>
+
+<h2>Running it</h2>
+<pre><code>npm install
+npm run dev        # http://localhost:5173
+npm test           # 56 tests
+npm run build      # type-check + production build</code></pre>
+<p>Test cards: <code>4242 4242 4242 4242</code> succeeds · <code>4000 0000 0000 0002</code> declined ·
+<code>4000 0000 0000 9995</code> insufficient funds · <code>4000 0000 0000 3220</code> bank verification (code 123456).</p>
+
+<h2>Limitations and next steps</h2>
+<ul>
+<li>The gateway runs in the browser. A real deployment moves it server-side and uses a payment provider's hosted fields, so card data never touches the app (PCI DSS scope).</li>
+<li>The assistant's articles are written for this demo; real help-centre content and real customer questions would give a fairer evaluation.</li>
+<li>Pretrained embeddings would help retrieval with vaguer questions.</li>
+</ul>
+
+<h2>Interview questions</h2>
+<dl class="qa">
+<dt>Why must a retry reuse the same idempotency key?</dt>
+<dd>If the first request charged the card but the response was lost, a new key would create a second charge. The same key makes the gateway return the original result.</dd>
+<dt>Why is the double-click guard a ref?</dt>
+<dd>State updates apply on the next render; two clicks in the same frame would both see "not busy". A ref changes immediately.</dd>
+<dt>What does aria-live do here?</dt>
+<dd>Screen readers announce status changes ("Processing…", "Your card was declined") without the user moving focus.</dd>
+<dt>Why does the assistant refuse some questions?</dt>
+<dd>A confident wrong answer about money is worse than "I could not find this; contact support". The threshold is chosen on dev questions, not test, to avoid overfitting.</dd>
+<dt>What does Luhn not catch?</dt>
+<dd>A valid-looking but non-existent card, and some digit swaps (09 ↔ 90). Only the issuer can confirm a card.</dd>
+</dl>

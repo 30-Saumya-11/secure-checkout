@@ -75,7 +75,7 @@ export function CheckoutForm({ gateway, amountMinor, retryDelayMs, onFailure }: 
 
   if (state.phase === "succeeded" && state.receipt) {
     return (
-      <section aria-labelledby={`${uid}-done`} className="card">
+      <section aria-labelledby={`${uid}-done`} className="success">
         <h2 id={`${uid}-done`}>Payment successful</h2>
         <p>
           {formatAmount(state.receipt.amountMinor)} paid with {BRAND_LABEL[state.receipt.brand] || "card"} •••• {state.receipt.last4}.
@@ -115,7 +115,7 @@ export function CheckoutForm({ gateway, amountMinor, retryDelayMs, onFailure }: 
   };
 
   return (
-    <form onSubmit={onSubmit} noValidate className="card" aria-label="Card payment">
+    <form onSubmit={onSubmit} noValidate className="pay-form" aria-label="Card payment">
       {errorList.length > 0 && (
         <div ref={summaryRef} tabIndex={-1} className="summary" role="group" aria-labelledby={`${uid}-sum`}>
           <h2 id={`${uid}-sum`}>Please fix {errorList.length === 1 ? "1 problem" : `${errorList.length} problems`}</h2>

@@ -2,6 +2,11 @@
 
 [![ci](https://github.com/30-Saumya-11/secure-checkout/actions/workflows/ci.yml/badge.svg)](https://github.com/30-Saumya-11/secure-checkout/actions/workflows/ci.yml)
 **[Live demo →](https://30-saumya-11.github.io/secure-checkout/)** try test card `4000 0000 0000 3220` for bank verification, or press "Simulate a lost response" and pay: you are still charged once.
+· **[Full documentation (PDF)](docs/Secure_Checkout_Documentation.pdf)**
+
+| Desktop | Phone |
+|---|---|
+| [![Checkout on desktop](docs/screenshot-desktop.png)](https://30-saumya-11.github.io/secure-checkout/) | <img src="docs/screenshot-mobile.png" alt="Checkout on a phone" width="260"> |
 
 An accessible, retry-safe card checkout in **React + TypeScript**, with a **RAG payment-help assistant** that answers
 customers' payment questions from a help centre, cites its sources, and uses the reason the last payment failed.
