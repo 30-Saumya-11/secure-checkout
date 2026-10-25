@@ -1,0 +1,191 @@
+:root {
+  --bg: #f6f7fb;
+  --surface: #ffffff;
+  --text: #14171f;
+  --muted: #555b6e;
+  --primary: #1a3fb0; /* 8.4:1 on white */
+  --error: #b3261e; /* 6.5:1 on white */
+  --border: #8a90a2; /* 3.3:1: visible input borders */
+  --focus: #ffb000;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+}
+
+.page {
+  max-width: 30rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+.card {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+h1 {
+  font-size: 1.6rem;
+}
+
+h2 {
+  font-size: 1.1rem;
+  margin-top: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 1rem;
+  flex: 1;
+}
+
+label {
+  font-weight: 600;
+}
+
+input {
+  font-size: 1rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  min-height: 44px; /* touch target */
+  box-sizing: border-box;
+}
+
+input[aria-invalid="true"] {
+  border: 2px solid var(--error);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.field-with-brand {
+  position: relative;
+}
+
+.brand {
+  position: absolute;
+  right: 0.8rem;
+  top: 2.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+button {
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.8rem 1.2rem;
+  min-height: 44px;
+  border-radius: 8px;
+  border: 0;
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+  width: 100%;
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.error {
+  color: var(--error);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.status {
+  min-height: 1.4rem;
+  margin: 0.8rem 0 0;
+}
+
+.summary {
+  border: 2px solid var(--error);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.summary a {
+  color: var(--error);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.total {
+  font-size: 1.1rem;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.45);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.dialog {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 24rem;
+  width: 100%;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.chat .turn {
+  border-top: 1px solid #e3e5ec;
+  padding-top: 0.5rem;
+}
+
+.source {
+  font-size: 0.85rem;
+}
+
+button.ask {
+  width: auto;
+}
+
+.row input {
+  flex: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
