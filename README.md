@@ -1,7 +1,27 @@
 # Secure Checkout
 
+[![ci](https://github.com/30-Saumya-11/secure-checkout/actions/workflows/ci.yml/badge.svg)](https://github.com/30-Saumya-11/secure-checkout/actions/workflows/ci.yml)
+**[Live demo →](https://30-saumya-11.github.io/secure-checkout/)** try test card `4000 0000 0000 3220` for bank verification, or press "Simulate a lost response" and pay: you are still charged once.
+
 An accessible, retry-safe card checkout in **React + TypeScript**, with a **RAG payment-help assistant** that answers
 customers' payment questions from a help centre, cites its sources, and uses the reason the last payment failed.
+
+```mermaid
+sequenceDiagram
+  participant U as Customer
+  participant F as Checkout form
+  participant H as useCheckout
+  participant G as Payment gateway
+  U->>F: Pay (double-click)
+  F->>H: submit (2nd click ignored: ref guard)
+  H->>G: charge(card, Idempotency-Key K)
+  G-->>H: (response lost, card WAS charged)
+  H->>G: retry charge(card, same key K)
+  G-->>H: original result, no second charge
+  H-->>F: Payment successful •••• 4242
+  U->>F: "why did it fail?" (after a decline)
+  F->>F: RAG assistant: decline code + question → BM25 → cited answer
+```
 
 Demo only: the payment gateway is a mock that runs in the browser. No real card network is contacted; use the test
 cards below.
